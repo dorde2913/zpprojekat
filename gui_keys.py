@@ -13,6 +13,7 @@ Upotreba u main.py:
     frame = KeyRingFrame(notebook)
     notebook.add(frame, text="Ključevi")
 """
+from __future__ import annotations
 
 import tkinter as tk
 from tkinter import ttk, filedialog, messagebox
@@ -212,13 +213,8 @@ class _ImportDialog(tk.Toplevel):
 
     def _toggle(self):
         is_pair = self._mode.get() == "pair"
-        # za javni ključ: skrivamo lozinku fajla i novu lozinku
-        # za par: skrivamo name/email polja (preuzimaju se iz PEM-a)
-        state_pair   = "normal" if is_pair  else "disabled"
-        state_public = "normal" if not is_pair else "disabled"
+        state_pair = "normal" if is_pair else "disabled"
 
-        self._ent_name.config(state=state_public)
-        self._ent_email.config(state=state_public)
         self._ent_pw.config(state=state_pair)
         self._ent_pw2.config(state=state_pair)
         self._ent_pw3.config(state=state_pair)
@@ -248,7 +244,11 @@ class _ImportDialog(tk.Toplevel):
                     messagebox.showerror("Greška", "Lozinke se ne poklapaju.", parent=self)
                     return
                 key_id = key_ops.import_key_pair(
-                    path, self._pw.get(), self._pw2.get()
+                    path,
+                    self._pw.get(),
+                    self._pw2.get(),
+                    self._name_var.get(),
+                    self._email.get(),
                 )
             self.destroy()
             self._on_success(key_id)

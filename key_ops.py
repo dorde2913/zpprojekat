@@ -99,7 +99,7 @@ def import_public_key(pem_path: str, name: str, email: str) -> str:
         raise InvalidKeyError(f"Nije moguće učitati ključ: {e}") from e
 
 
-def import_key_pair(pem_path: str, password: str, new_password: str) -> str:
+def import_key_pair(pem_path: str, password: str, new_password: str, name: str, email: str) -> str:
     """
     Uvozi par ključeva iz enkriptovanog PEM fajla.
     Vraća Key ID.
@@ -109,11 +109,18 @@ def import_key_pair(pem_path: str, password: str, new_password: str) -> str:
         InvalidKeyError        — neispravan PEM
         KeyAlreadyExistsError  — isti ključ već postoji
     """
+    name = name.strip()
+    email = email.strip()
+
+    if not name:
+        raise InvalidKeyError("Ime ne sme biti prazno.")
+    if not email or "@" not in email:
+        raise InvalidKeyError("Unesite ispravnu e-mail adresu.")
     if not new_password:
         raise InvalidKeyError("Nova lozinka ne sme biti prazna.")
 
     try:
-        return _kr.import_key_pair(pem_path, password, new_password)
+        return _kr.import_key_pair(pem_path, password, new_password, name, email)
     except ValueError as e:
         msg = str(e)
         if "već postoji" in msg:

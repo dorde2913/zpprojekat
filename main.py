@@ -40,25 +40,22 @@ Svi moduli moraju biti u istom folderu:
 import tkinter as tk
 from tkinter import ttk
 from gui_keys import KeyRingFrame
+from gui_messages import MessagesFrame
 
 
 def main():
     root = tk.Tk()
     root.title("PGP Aplikacija")
-    root.geometry("820x520")
-    root.minsize(680, 400)
+    root.geometry("960x560")
+    root.minsize(820, 480)
 
     notebook = ttk.Notebook(root)
     notebook.pack(fill="both", expand=True, padx=8, pady=8)
 
-    # --- tvoj tab ---
     keys_frame = KeyRingFrame(notebook)
     notebook.add(keys_frame, text="  Upravljanje ključevima  ")
 
-    # --- drugarov tab (placeholder dok ne napravi gui_messages.py) ---
-    msg_frame = ttk.Frame(notebook)
-    ttk.Label(msg_frame, text="Slanje i prijem poruka — u izradi",
-              font=("", 12), foreground="gray").place(relx=0.5, rely=0.5, anchor="center")
+    msg_frame = MessagesFrame(notebook)
     notebook.add(msg_frame, text="  Poruke  ")
 
     root.mainloop()

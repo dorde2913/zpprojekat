@@ -1,14 +1,8 @@
-import io
 import itertools
-import os
 import secrets
-import tempfile
 import unittest
-from contextlib import redirect_stdout
 
-from cryptography.hazmat.backends import default_backend
-from cryptography.hazmat.primitives.asymmetric import rsa
-
+import key_ops
 from messaging.encode import PGPEncode, PGPDecode
 from messaging.models.headers import (
     AuthHeader,
@@ -17,6 +11,7 @@ from messaging.models.headers import (
     PlainHeader,
     Radix64Header,
 )
+from tests.test_helpers import IsolatedKeyringTestCase, run_silently
 
 
 def expected_outer_header_type(auth, encrypt, compress, radix):
@@ -31,54 +26,48 @@ def expected_outer_header_type(auth, encrypt, compress, radix):
     return PlainHeader
 
 
-class RoundTripCombinationTests(unittest.TestCase):
+class RoundTripCombinationTests(IsolatedKeyringTestCase):
     @classmethod
     def setUpClass(cls):
-        cls.private_key = rsa.generate_private_key(
-            public_exponent=65537,
-            key_size=2048,
-            backend=default_backend(),
-        )
-        cls.public_key = cls.private_key.public_key()
-        cls.session_key = secrets.token_bytes(16)
         cls.plaintext = b"Hello this is a round-trip test message"
-        cls.signer_id = "test-signer"
-        cls.recipient_id = "test-recipient"
         cls.algorithm = "tripledes"
+        cls.password = "round-trip-pass"
 
     def setUp(self):
-        self._temp_dir = tempfile.TemporaryDirectory()
-        self._previous_cwd = os.getcwd()
-        os.chdir(self._temp_dir.name)
-
-    def tearDown(self):
-        os.chdir(self._previous_cwd)
-        self._temp_dir.cleanup()
+        super().setUp()
+        self.key_id = self.generate_user("Round Trip", "roundtrip@test.com", self.password)
+        self.private_key = key_ops.get_private_key(self.key_id, self.password)
+        self.public_key = key_ops.get_public_key(self.key_id)
+        self.session_key = secrets.token_bytes(16)
 
     def _encode_decode(self, auth, encrypt, compress, radix):
+        output_file = self.message_path("encoded.bin")
+
         encode_private_key = self.private_key if auth else None
+        signer_id = self.key_id if auth else ""
         session_key = self.session_key if encrypt else None
+        recipient_id = self.key_id if encrypt else ""
         public_key = self.public_key if encrypt else None
         algorithm = self.algorithm if encrypt else None
 
-        with redirect_stdout(io.StringIO()):
-            encoded = PGPEncode(
-                self.plaintext,
-                encode_private_key,
-                self.signer_id,
-                session_key,
-                self.recipient_id,
-                public_key,
-                algorithm,
-                compress,
-                radix,
-            )
-            decoded = PGPDecode(
-                "testfile.txt",
-                private_key=self.private_key,
-                public_key=self.public_key,
-            )
-
+        encoded = run_silently(
+            PGPEncode,
+            output_file,
+            self.plaintext,
+            encode_private_key,
+            signer_id,
+            session_key,
+            recipient_id,
+            public_key,
+            algorithm,
+            compress,
+            radix,
+        )
+        decoded = run_silently(
+            PGPDecode,
+            output_file,
+            self.password,
+        )
         return encoded, decoded
 
     def test_round_trip_all_option_combinations(self):

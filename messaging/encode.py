@@ -18,7 +18,7 @@ radix - boolean flag da li radimno konverziju u radix64
 """
 
 
-def PGPEncode(plaintext, private_key, signer_id, session_key, recipient_id, public_key, algorithm, zip, radix):
+def PGPEncode(output_file,plaintext, private_key, signer_id, session_key, recipient_id, public_key, algorithm, zip, radix):
     plainHeader = PlainHeader()
     message = PGPMessage(plainHeader, plaintext)
 
@@ -60,15 +60,15 @@ def PGPEncode(plaintext, private_key, signer_id, session_key, recipient_id, publ
         message = PGPMessage(header, radix_msg)
 
 
-    write_message("testfile.txt", message)
+    write_message(output_file, message)
     return message
 
 
-def PGPDecode(filePath: str, private_key=None, public_key=None):
+def PGPDecode(filePath: str, password):
     message = read_message(filePath)
 
     while not isinstance(message.header, PlainHeader):
-        message = message.decodeContent(private_key=private_key, public_key=public_key)
+        message = message.decodeContent(password)
 
     print(message.to_dict())
     return message

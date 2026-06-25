@@ -7,6 +7,7 @@ import hashlib
 from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.primitives.asymmetric import padding
 
+import key_ops
 from messaging.crypt import getAlgorithm
 from messaging.models.headers import (
     AuthHeader,
@@ -49,7 +50,7 @@ class PGPMessage:
         header = Header.from_bytes(header_bytes)
         return PGPMessage(header, content)
 
-    def decodeContent(self, private_key=None, public_key=None):
+    def decodeContent(self, password):
         if isinstance(self.header, Radix64Header):
             return PGPMessage.from_bytes(base64.b64decode(self.content))
 
@@ -57,6 +58,7 @@ class PGPMessage:
             return PGPMessage.from_bytes(zlib.decompress(self.content))
 
         if isinstance(self.header, EncryptionHeader):
+            private_key = key_ops.get_private_key(self.header.recipient_id, password)
             if private_key is None:
                 raise ValueError("private_key required for decryption")
             session_key = private_key.decrypt(
@@ -68,6 +70,7 @@ class PGPMessage:
             return PGPMessage.from_bytes(decrypted)
 
         if isinstance(self.header, AuthHeader):
+            public_key = key_ops.get_public_key(self.header.signer)
             if public_key is None:
                 raise ValueError("public_key required for auth verification")
             digest = hashlib.sha1(self.content).digest()

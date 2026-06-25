@@ -183,11 +183,12 @@ class KeyRing:
         self._save_metadata()
         return key_id
 
-    def import_key_pair(self, pem_path: str, password: str, new_password: str) -> str:
+    def import_key_pair(self, pem_path: str, password: str, new_password: str, name: str, email: str) -> str:
         """
         Uvozi par ključeva iz enkriptovanog PEM fajla.
         password     - lozinka kojom je ulazni PEM enkriptovan
         new_password - lozinka pod kojom će biti sačuvan lokalno
+        name, email  - metapodaci vlasnika ključa
         Vraća Key ID.
         """
         with open(pem_path, "rb") as f:
@@ -208,12 +209,11 @@ class KeyRing:
         self._write_private_pem(key_id, private_key, new_password)
         self._write_public_pem(key_id, public_key)
 
-        # Pokušaj da izvučemo name/email iz komentara ako postoji — inače placeholder
         entry = {
             "key_id":      key_id,
             "fingerprint": _compute_fingerprint(public_key),
-            "name":        "(uvezeno)",
-            "email":       "(uvezeno)",
+            "name":        name,
+            "email":       email,
             "key_size":    key_size,
             "created_at":  _now_iso(),
             "has_private": True,
